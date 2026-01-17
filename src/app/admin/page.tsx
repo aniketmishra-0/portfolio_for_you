@@ -39,7 +39,6 @@ import {
     ChevronDown
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
 import { usePortfolioData, Project, Experience, Testimonial, Education, SectionVisibility, SectionId, defaultSectionOrder, CustomSection } from "@/context/DataContext";
 
 const menuItems = [
@@ -84,7 +83,7 @@ const sectionLabels: Record<keyof SectionVisibility, { label: string; descriptio
 
 export default function AdminPanel() {
     const router = useRouter();
-    const { data: session, status } = useSession();
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
     const {
         data,
         allProfiles,
@@ -142,9 +141,26 @@ export default function AdminPanel() {
     const [editingItem, setEditingItem] = useState<Project | Experience | Testimonial | Education | null>(null);
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
-    // Redirect if not authenticated
+    // Check localStorage auth
     useEffect(() => {
-        if (status === "unauthenticated") {
+        const authStatus = localStorage.getItem("admin_authenticated");
+        const authTime = localStorage.getItem("admin_auth_time");
+
+        // Check if auth is valid (24 hour expiry)
+        if (authStatus === "true" && authTime) {
+            const authAge = Date.now() - parseInt(authTime);
+            const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+            if (authAge < maxAge) {
+                setIsAuthenticated(true);
+            } else {
+                // Session expired
+                localStorage.removeItem("admin_authenticated");
+                localStorage.removeItem("admin_auth_time");
+                setIsAuthenticated(false);
+                router.push("/login");
+            }
+        } else {
+            setIsAuthenticated(false);
             router.push("/login");
         }
 
@@ -153,18 +169,20 @@ export default function AdminPanel() {
             setTheme(savedTheme);
             document.documentElement.setAttribute("data-theme", savedTheme);
         }
-    }, [status, router]);
+    }, [router]);
 
     useEffect(() => {
         setEditingProfile(data.profile);
     }, [data.profile, allProfiles.activeProfileId]);
 
-    const handleLogout = async () => {
-        await signOut({ callbackUrl: "/login" });
+    const handleLogout = () => {
+        localStorage.removeItem("admin_authenticated");
+        localStorage.removeItem("admin_auth_time");
+        router.push("/login");
     };
 
     // Show loading while checking auth
-    if (status === "loading") {
+    if (isAuthenticated === null) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
                 <Loader2 className="w-8 h-8 animate-spin text-[var(--accent-primary)]" />
@@ -173,7 +191,7 @@ export default function AdminPanel() {
     }
 
     // Don't render if not authenticated
-    if (!session) {
+    if (!isAuthenticated) {
         return null;
     }
 
@@ -1612,8 +1630,8 @@ export default function AdminPanel() {
                                                         <div key={item.id} className="p-3 rounded-xl bg-[var(--background)]/30 border border-[var(--glass-border)]">
                                                             <div className="flex items-start justify-between mb-2">
                                                                 <span className={`text-xs px-2 py-0.5 rounded ${item.type === 'card' ? 'bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]' :
-                                                                        item.type === 'text' ? 'bg-[var(--accent-secondary)]/20 text-[var(--accent-secondary)]' :
-                                                                            'bg-purple-500/20 text-purple-400'
+                                                                    item.type === 'text' ? 'bg-[var(--accent-secondary)]/20 text-[var(--accent-secondary)]' :
+                                                                        'bg-purple-500/20 text-purple-400'
                                                                     }`}>
                                                                     {item.type.toUpperCase()}
                                                                 </span>
