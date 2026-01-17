@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Github, Linkedin, Twitter, Instagram, ChevronDown, Download, ArrowRight, Sparkles } from "lucide-react";
 import { usePortfolioData } from "@/context/DataContext";
+import { getAssetPath } from "@/lib/basePath";
 
 const TypeWriter = ({ words }: { words: string[] }) => {
     const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -218,7 +219,7 @@ export default function Hero() {
                                 {/* Avatar image */}
                                 <div className="absolute inset-3 rounded-full overflow-hidden neo-glass">
                                     <img
-                                        src={`${profile.avatar}?v=5`}
+                                        src={profile.avatar.startsWith('http') ? profile.avatar : getAssetPath(profile.avatar)}
                                         alt={profile.name}
                                         className="w-full h-full object-cover object-[center_25%]"
                                     />

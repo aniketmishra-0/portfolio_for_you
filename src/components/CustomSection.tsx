@@ -4,6 +4,7 @@ import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import { CustomSection as CustomSectionType } from "@/context/DataContext";
 import { Code2, Users, Briefcase, Coffee, Trophy, Rocket, Star, Heart, Globe, Zap, ExternalLink, LucideIcon } from "lucide-react";
+import { getAssetPath } from "@/lib/basePath";
 
 // Icon map for dynamic rendering
 const iconMap: Record<string, LucideIcon> = {
@@ -117,7 +118,7 @@ export default function CustomSection({ section }: CustomSectionProps) {
                                 <div className="glass-card overflow-hidden card-hover group">
                                     <div className="aspect-video relative">
                                         <img
-                                            src={item.imageUrl}
+                                            src={item.imageUrl?.startsWith('http') ? item.imageUrl : getAssetPath(item.imageUrl || '')}
                                             alt={item.caption || "Image"}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                         />

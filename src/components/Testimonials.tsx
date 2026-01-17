@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { Quote, Star, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { usePortfolioData } from "@/context/DataContext";
+import { getAssetPath } from "@/lib/basePath";
 
 export default function Testimonials() {
     const { data } = usePortfolioData();
@@ -92,7 +93,7 @@ export default function Testimonials() {
                             {/* Author */}
                             <div className="flex items-center gap-4">
                                 <img
-                                    src={testimonials[currentIndex].image}
+                                    src={testimonials[currentIndex].image.startsWith('http') ? testimonials[currentIndex].image : getAssetPath(testimonials[currentIndex].image)}
                                     alt={testimonials[currentIndex].name}
                                     className="w-14 h-14 rounded-full border-2 border-[var(--accent-primary)]"
                                 />
@@ -131,8 +132,8 @@ export default function Testimonials() {
                                 key={index}
                                 onClick={() => setCurrentIndex(index)}
                                 className={`w-3 h-3 rounded-full transition-all ${index === currentIndex
-                                        ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] w-8"
-                                        : "bg-[var(--glass-border)]"
+                                    ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] w-8"
+                                    : "bg-[var(--glass-border)]"
                                     }`}
                             />
                         ))}

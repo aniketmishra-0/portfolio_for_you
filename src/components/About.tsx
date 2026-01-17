@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Calendar, MapPin, Mail, Download, Sparkles, User, Briefcase, GraduationCap } from "lucide-react";
 import { usePortfolioData } from "@/context/DataContext";
+import { getAssetPath } from "@/lib/basePath";
 
 export default function About() {
     const { data } = usePortfolioData();
@@ -66,7 +67,7 @@ export default function About() {
                             <div className="relative neo-glass rounded-3xl overflow-hidden p-3">
                                 <div className="relative rounded-2xl overflow-hidden aspect-square">
                                     <img
-                                        src={`${profile.avatar}?v=6`}
+                                        src={profile.avatar.startsWith('http') ? profile.avatar : getAssetPath(profile.avatar)}
                                         alt={profile.name}
                                         className="w-full h-full object-cover object-[center_25%]"
                                     />
