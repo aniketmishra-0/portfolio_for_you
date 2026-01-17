@@ -1,36 +1,131 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aniket Mishra's Portfolio
 
-## Getting Started
+A stunning, modern portfolio website built with Next.js 14, Tailwind CSS, and Framer Motion.
 
-First, run the development server:
+## ✨ Features
+
+- 🎨 **Premium Dark Theme** - Glassmorphism, gradients, and smooth animations
+- ⚡ **Fast Performance** - Built with Next.js 14 App Router
+- 📱 **Fully Responsive** - Works on all devices
+- 🎭 **Beautiful Animations** - Powered by Framer Motion
+- 📝 **Easy Content Updates** - Just edit `src/lib/data.ts`
+- 🔍 **SEO Optimized** - Meta tags, Open Graph, Twitter cards
+
+## 🚀 Getting Started
 
 ```bash
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📁 Project Structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+portfolio/
+├── src/
+│   ├── app/              # Next.js App Router
+│   │   ├── page.tsx      # Main portfolio page
+│   │   ├── layout.tsx    # Root layout with SEO
+│   │   └── globals.css   # Global styles
+│   ├── components/       # React components
+│   │   ├── Navbar.tsx    # Navigation bar
+│   │   ├── Hero.tsx      # Hero section
+│   │   ├── About.tsx     # About section
+│   │   ├── Skills.tsx    # Skills display
+│   │   ├── Projects.tsx  # Project showcase
+│   │   ├── Experience.tsx # Work experience
+│   │   ├── Education.tsx # Education & certs
+│   │   ├── Blog.tsx      # Blog articles
+│   │   ├── Contact.tsx   # Contact form
+│   │   └── Footer.tsx    # Site footer
+│   └── lib/
+│       └── data.ts       # ⭐ EDIT THIS TO UPDATE CONTENT
+└── public/               # Static assets
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## ✏️ How to Edit Content
 
-## Learn More
+**No coding required!** Just edit the `src/lib/data.ts` file:
 
-To learn more about Next.js, take a look at the following resources:
+### Update Your Profile
+```typescript
+export const profileData = {
+  name: "Your Name",
+  title: "Your Title",
+  email: "your@email.com",
+  // ... other fields
+};
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Add Projects
+```typescript
+export const projects = [
+  {
+    id: 1,
+    title: "Project Name",
+    description: "Project description",
+    tags: ["React", "Node.js"],
+    liveUrl: "https://...",
+    githubUrl: "https://github.com/...",
+  },
+  // Add more projects...
+];
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Add Experience
+```typescript
+export const experience = [
+  {
+    id: 1,
+    role: "Job Title",
+    company: "Company Name",
+    duration: "2023 - Present",
+    description: ["Responsibility 1", "Responsibility 2"],
+    technologies: ["React", "Node.js"],
+  },
+  // Add more experience...
+];
+```
 
-## Deploy on Vercel
+## 🎨 Customization
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Colors
+Edit the CSS variables in `src/app/globals.css`:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```css
+:root {
+  --accent-primary: #6366f1;    /* Change primary color */
+  --accent-secondary: #8b5cf6;  /* Change secondary color */
+  --accent-tertiary: #d946ef;   /* Change tertiary color */
+}
+```
+
+## 🌐 Deployment
+
+### Vercel (Recommended)
+1. Push to GitHub
+2. Import to [Vercel](https://vercel.com)
+3. Done! Auto-deploys on every push
+
+### Other Platforms
+```bash
+npm run build
+# Deploy the .next folder
+```
+
+## 📄 License
+
+MIT License - feel free to use this for your own portfolio!
+
+---
+
+Made with ❤️ by Aniket Mishra
