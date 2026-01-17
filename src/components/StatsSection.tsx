@@ -2,15 +2,22 @@
 
 import { useRef, useEffect, useState } from "react";
 import { motion, useInView } from "framer-motion";
-import { Code2, Coffee, Briefcase, Users, Trophy, Rocket } from "lucide-react";
+import { Code2, Coffee, Briefcase, Users, Trophy, Rocket, Star, Heart, Globe, Zap, LucideIcon } from "lucide-react";
+import { usePortfolioData } from "@/context/DataContext";
 
-const stats = [
-    { icon: Code2, value: 50, suffix: "+", label: "Projects Completed", color: "from-purple-500 to-indigo-500" },
-    { icon: Users, value: 30, suffix: "+", label: "Happy Clients", color: "from-indigo-500 to-cyan-500" },
-    { icon: Briefcase, value: 5, suffix: "+", label: "Years Experience", color: "from-cyan-500 to-emerald-500" },
-    { icon: Coffee, value: 1000, suffix: "+", label: "Cups of Coffee", color: "from-emerald-500 to-yellow-500" },
-    { icon: Trophy, value: 15, suffix: "+", label: "Awards Won", color: "from-yellow-500 to-orange-500" },
-    { icon: Rocket, value: 99, suffix: "%", label: "Client Satisfaction", color: "from-orange-500 to-red-500" },
+// Icon map for dynamic rendering
+const iconMap: Record<string, LucideIcon> = {
+    Code2, Coffee, Briefcase, Users, Trophy, Rocket, Star, Heart, Globe, Zap
+};
+
+// Default stats in case no custom stats are set
+const defaultStats = [
+    { id: 1, icon: "Code2", value: 50, suffix: "+", label: "Projects Completed", color: "from-purple-500 to-indigo-500" },
+    { id: 2, icon: "Users", value: 30, suffix: "+", label: "Happy Clients", color: "from-indigo-500 to-cyan-500" },
+    { id: 3, icon: "Briefcase", value: 5, suffix: "+", label: "Years Experience", color: "from-cyan-500 to-emerald-500" },
+    { id: 4, icon: "Coffee", value: 1000, suffix: "+", label: "Cups of Coffee", color: "from-emerald-500 to-yellow-500" },
+    { id: 5, icon: "Trophy", value: 15, suffix: "+", label: "Awards Won", color: "from-yellow-500 to-orange-500" },
+    { id: 6, icon: "Rocket", value: 99, suffix: "%", label: "Client Satisfaction", color: "from-orange-500 to-red-500" },
 ];
 
 function AnimatedCounter({ value, suffix, duration = 2 }: { value: number; suffix: string; duration?: number }) {
@@ -50,8 +57,12 @@ function AnimatedCounter({ value, suffix, duration = 2 }: { value: number; suffi
 }
 
 export default function StatsSection() {
+    const { data } = usePortfolioData();
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, amount: 0.2 });
+
+    // Use custom stats from data, or fallback to defaults
+    const stats = data.customStats && data.customStats.length > 0 ? data.customStats : defaultStats;
 
     return (
         <section className="py-20 bg-[var(--background-secondary)] relative overflow-hidden">
@@ -77,27 +88,30 @@ export default function StatsSection() {
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    {stats.map((stat, index) => (
-                        <motion.div
-                            key={stat.label}
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={isInView ? { opacity: 1, y: 0 } : {}}
-                            transition={{ duration: 0.5, delay: index * 0.1 }}
-                            className="glass-card p-6 text-center card-hover group"
-                        >
-                            <div className={`w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-br ${stat.color} p-0.5`}>
-                                <div className="w-full h-full rounded-xl bg-[var(--background-secondary)] flex items-center justify-center group-hover:bg-transparent transition-colors">
-                                    <stat.icon className="w-5 h-5 text-[var(--foreground)] group-hover:text-white transition-colors" />
+                    {stats.map((stat, index) => {
+                        const IconComponent = iconMap[stat.icon] || Code2;
+                        return (
+                            <motion.div
+                                key={stat.id || stat.label}
+                                initial={{ opacity: 0, y: 30 }}
+                                animate={isInView ? { opacity: 1, y: 0 } : {}}
+                                transition={{ duration: 0.5, delay: index * 0.1 }}
+                                className="glass-card p-6 text-center card-hover group"
+                            >
+                                <div className={`w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-br ${stat.color} p-0.5`}>
+                                    <div className="w-full h-full rounded-xl bg-[var(--background-secondary)] flex items-center justify-center group-hover:bg-transparent transition-colors">
+                                        <IconComponent className="w-5 h-5 text-[var(--foreground)] group-hover:text-white transition-colors" />
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="text-2xl sm:text-3xl font-bold text-gradient mb-1">
-                                <AnimatedCounter value={stat.value} suffix={stat.suffix} />
-                            </div>
-                            <div className="text-xs sm:text-sm text-[var(--foreground-secondary)]">
-                                {stat.label}
-                            </div>
-                        </motion.div>
-                    ))}
+                                <div className="text-2xl sm:text-3xl font-bold text-gradient mb-1">
+                                    <AnimatedCounter value={stat.value} suffix={stat.suffix} />
+                                </div>
+                                <div className="text-xs sm:text-sm text-[var(--foreground-secondary)]">
+                                    {stat.label}
+                                </div>
+                            </motion.div>
+                        );
+                    })}
                 </div>
             </div>
         </section>

@@ -32,10 +32,15 @@ import {
     ToggleRight,
     Layers,
     Award,
-    Palette
+    Palette,
+    BarChart3,
+    Loader2,
+    ChevronUp,
+    ChevronDown
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { usePortfolioData, Project, Experience, Testimonial, Education, SectionVisibility } from "@/context/DataContext";
+import { useSession, signOut } from "next-auth/react";
+import { usePortfolioData, Project, Experience, Testimonial, Education, SectionVisibility, SectionId, defaultSectionOrder, CustomSection } from "@/context/DataContext";
 
 const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", id: "dashboard" },
@@ -49,7 +54,18 @@ const menuItems = [
     { icon: Code, label: "Skills", id: "skills" },
     { icon: MessageSquare, label: "Testimonials", id: "testimonials" },
     { icon: Edit2, label: "Blog", id: "blog" },
+    { icon: BarChart3, label: "Stats", id: "stats" },
+    { icon: Plus, label: "Custom Sections", id: "custom-sections" },
     { icon: Palette, label: "Appearance", id: "appearance" },
+    { icon: Settings, label: "Settings", id: "settings" },
+];
+
+// Only show these 5 items on mobile bottom nav
+const mobileMenuItems = [
+    { icon: LayoutDashboard, label: "Home", id: "dashboard" },
+    { icon: User, label: "Profile", id: "profile" },
+    { icon: FolderOpen, label: "Projects", id: "projects" },
+    { icon: Code, label: "Skills", id: "skills" },
     { icon: Settings, label: "Settings", id: "settings" },
 ];
 
@@ -68,6 +84,7 @@ const sectionLabels: Record<keyof SectionVisibility, { label: string; descriptio
 
 export default function AdminPanel() {
     const router = useRouter();
+    const { data: session, status } = useSession();
     const {
         data,
         allProfiles,
@@ -98,6 +115,17 @@ export default function AdminPanel() {
         addCertification,
         updateCertification,
         deleteCertification,
+        addStat,
+        updateStat,
+        deleteStat,
+        addCustomSection,
+        updateCustomSection,
+        deleteCustomSection,
+        addCustomSectionItem,
+        updateCustomSectionItem,
+        deleteCustomSectionItem,
+        moveSectionUp,
+        moveSectionDown,
         exportData,
         importData,
         resetToDefault
@@ -105,6 +133,7 @@ export default function AdminPanel() {
 
     const [activeTab, setActiveTab] = useState("dashboard");
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [theme, setTheme] = useState<"dark" | "light">("dark");
     const [editingProfile, setEditingProfile] = useState(data.profile);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -113,9 +142,9 @@ export default function AdminPanel() {
     const [editingItem, setEditingItem] = useState<Project | Experience | Testimonial | Education | null>(null);
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
+    // Redirect if not authenticated
     useEffect(() => {
-        const isLoggedIn = localStorage.getItem("admin_logged_in");
-        if (isLoggedIn !== "true") {
+        if (status === "unauthenticated") {
             router.push("/login");
         }
 
@@ -124,16 +153,29 @@ export default function AdminPanel() {
             setTheme(savedTheme);
             document.documentElement.setAttribute("data-theme", savedTheme);
         }
-    }, [router]);
+    }, [status, router]);
 
     useEffect(() => {
         setEditingProfile(data.profile);
     }, [data.profile, allProfiles.activeProfileId]);
 
-    const handleLogout = () => {
-        localStorage.removeItem("admin_logged_in");
-        router.push("/login");
+    const handleLogout = async () => {
+        await signOut({ callbackUrl: "/login" });
     };
+
+    // Show loading while checking auth
+    if (status === "loading") {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+                <Loader2 className="w-8 h-8 animate-spin text-[var(--accent-primary)]" />
+            </div>
+        );
+    }
+
+    // Don't render if not authenticated
+    if (!session) {
+        return null;
+    }
 
     const toggleTheme = () => {
         const newTheme = theme === "dark" ? "light" : "dark";
@@ -196,12 +238,11 @@ export default function AdminPanel() {
                 <div className="absolute bottom-0 left-0 w-[150px] sm:w-[300px] lg:w-[500px] h-[150px] sm:h-[300px] lg:h-[500px] bg-[var(--accent-secondary)] rounded-full filter blur-[80px] sm:blur-[150px] lg:blur-[200px] opacity-10" />
             </div>
 
-            {/* Sidebar with Icons + Names */}
+            {/* Desktop Sidebar - Hidden on mobile */}
             <motion.aside
                 initial={{ x: -220 }}
                 animate={{ x: sidebarOpen ? 0 : -200 }}
-                className={`admin-sidebar fixed z-50 flex flex-col
-                    max-sm:left-0 max-sm:right-0 max-sm:bottom-0 max-sm:top-auto max-sm:w-full max-sm:h-14 max-sm:border-t max-sm:flex-row max-sm:justify-around
+                className={`admin-sidebar fixed z-50 flex-col hidden sm:flex
                     sm:left-0 sm:top-0 sm:w-[200px] sm:h-screen
                     ${theme === "dark"
                         ? "bg-[#0a0a14] border-r border-white/[0.08]"
@@ -209,21 +250,20 @@ export default function AdminPanel() {
                     }`}
             >
                 {/* Logo */}
-                <div className={`h-12 flex items-center gap-2.5 px-4 max-sm:hidden ${theme === "dark" ? "border-b border-white/[0.08]" : "border-b border-gray-100"}`}>
+                <div className={`h-12 flex items-center gap-2.5 px-4 ${theme === "dark" ? "border-b border-white/[0.08]" : "border-b border-gray-100"}`}>
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-semibold text-xs">
                         {data.profile.name.split(" ").map(n => n[0]).join("")}
                     </div>
                     <span className="text-sm font-semibold">Admin</span>
                 </div>
 
-                {/* Menu Items */}
-                <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto max-sm:flex max-sm:py-0 max-sm:px-0 max-sm:space-y-0 max-sm:justify-around">
+                {/* Desktop Menu Items */}
+                <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto">
                     {menuItems.map((item) => (
                         <button
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
                             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all
-                                max-sm:w-auto max-sm:flex-col max-sm:gap-0.5 max-sm:px-2 max-sm:py-1.5 max-sm:text-[10px]
                                 ${activeTab === item.id
                                     ? theme === "dark"
                                         ? "bg-violet-500/15 text-violet-400"
@@ -233,14 +273,14 @@ export default function AdminPanel() {
                                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                                 }`}
                         >
-                            <item.icon size={18} className="max-sm:w-5 max-sm:h-5" />
+                            <item.icon size={18} />
                             <span className="font-medium">{item.label}</span>
                         </button>
                     ))}
                 </nav>
 
-                {/* Bottom */}
-                <div className={`py-2 px-2 space-y-0.5 max-sm:hidden ${theme === "dark" ? "border-t border-white/[0.08]" : "border-t border-gray-100"}`}>
+                {/* Desktop Bottom */}
+                <div className={`py-2 px-2 space-y-0.5 ${theme === "dark" ? "border-t border-white/[0.08]" : "border-t border-gray-100"}`}>
                     <a
                         href="/"
                         target="_blank"
@@ -260,6 +300,35 @@ export default function AdminPanel() {
                 </div>
             </motion.aside>
 
+            {/* Mobile Bottom Navigation - Only on small screens */}
+            <nav className={`fixed bottom-0 left-0 right-0 z-50 sm:hidden flex items-center justify-around px-2 py-2 backdrop-blur-xl border-t
+                ${theme === "dark"
+                    ? "bg-[#0a0a14]/95 border-white/10"
+                    : "bg-white/95 border-gray-200"
+                }`}
+            >
+                {mobileMenuItems.map((item) => (
+                    <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`flex flex-col items-center justify-center gap-1 px-3 py-1.5 rounded-xl transition-all min-w-[56px]
+                            ${activeTab === item.id
+                                ? theme === "dark"
+                                    ? "bg-violet-500/20 text-violet-400"
+                                    : "bg-violet-100 text-violet-600"
+                                : theme === "dark"
+                                    ? "text-gray-500 active:bg-white/5"
+                                    : "text-gray-500 active:bg-gray-100"
+                            }`}
+                    >
+                        <item.icon size={20} strokeWidth={activeTab === item.id ? 2.5 : 2} />
+                        <span className={`text-[10px] font-medium ${activeTab === item.id ? "font-semibold" : ""}`}>
+                            {item.label}
+                        </span>
+                    </button>
+                ))}
+            </nav>
+
             {/* Mobile overlay - Only show on tablet/medium screens, not on small mobile where sidebar is bottom bar */}
             <AnimatePresence>
                 {sidebarOpen && (
@@ -273,43 +342,130 @@ export default function AdminPanel() {
                 )}
             </AnimatePresence>
 
+            {/* Mobile Slide-out Menu Drawer */}
+            <AnimatePresence>
+                {mobileMenuOpen && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="sm:hidden fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
+                            onClick={() => setMobileMenuOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ x: "-100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "-100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className={`sm:hidden fixed left-0 top-0 bottom-0 w-64 z-50 flex flex-col shadow-2xl
+                                ${theme === "dark"
+                                    ? "bg-[#0a0a14] border-r border-white/10"
+                                    : "bg-white border-r border-gray-200"
+                                }`}
+                        >
+                            {/* Drawer Header */}
+                            <div className={`h-12 flex items-center justify-between px-4 ${theme === "dark" ? "border-b border-white/10" : "border-b border-gray-100"}`}>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-semibold text-[10px]">
+                                        {data.profile.name.split(" ").map(n => n[0]).join("")}
+                                    </div>
+                                    <span className="text-sm font-semibold">Menu</span>
+                                </div>
+                                <button
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className={`p-1.5 rounded-lg ${theme === "dark" ? "hover:bg-white/10" : "hover:bg-gray-100"}`}
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Drawer Menu Items */}
+                            <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto">
+                                {menuItems.map((item) => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => {
+                                            setActiveTab(item.id);
+                                            setMobileMenuOpen(false);
+                                        }}
+                                        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all
+                                            ${activeTab === item.id
+                                                ? theme === "dark"
+                                                    ? "bg-violet-500/15 text-violet-400"
+                                                    : "bg-violet-50 text-violet-600"
+                                                : theme === "dark"
+                                                    ? "text-gray-400 hover:text-white hover:bg-white/[0.05]"
+                                                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                                            }`}
+                                    >
+                                        <item.icon size={18} />
+                                        <span className="font-medium">{item.label}</span>
+                                    </button>
+                                ))}
+                            </nav>
+
+                            {/* Drawer Bottom */}
+                            <div className={`py-2 px-2 space-y-0.5 ${theme === "dark" ? "border-t border-white/10" : "border-t border-gray-100"}`}>
+                                <a
+                                    href="/"
+                                    target="_blank"
+                                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all
+                                        ${theme === "dark" ? "text-gray-400 hover:text-white hover:bg-white/[0.05]" : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"}`}
+                                >
+                                    <Eye size={18} />
+                                    <span className="font-medium">View Site</span>
+                                </a>
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-all"
+                                >
+                                    <LogOut size={18} />
+                                    <span className="font-medium">Logout</span>
+                                </button>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
             {/* Main Content */}
-            <div className="admin-content sm:ml-[200px] min-h-screen flex flex-col relative z-10 max-sm:ml-0 max-sm:pb-16">
+            <div className="admin-content sm:ml-[200px] min-h-screen flex flex-col relative z-10 max-sm:ml-0 max-sm:pb-20">
                 {/* Header - Compact */}
-                <header className={`h-14 flex items-center justify-between px-5 sticky top-0 z-30 backdrop-blur-xl
+                <header className={`h-12 max-sm:h-11 flex items-center justify-between px-4 max-sm:px-3 sticky top-0 z-30 backdrop-blur-xl
                     ${theme === "dark"
                         ? "bg-[#030014]/90 border-b border-white/[0.04]"
                         : "bg-white/90 border-b border-gray-100"
                     }`}>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         <button
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className={`sm:hidden p-2 rounded-lg transition-all
+                            onClick={() => setMobileMenuOpen(true)}
+                            className={`sm:hidden p-1.5 rounded-lg transition-all
                                 ${theme === "dark" ? "hover:bg-white/10" : "hover:bg-gray-100"}`}
                         >
-                            {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+                            <Menu size={16} />
                         </button>
-                        <h1 className="text-base font-semibold capitalize">
+                        <h1 className="text-sm max-sm:text-xs font-semibold capitalize">
                             {activeTab === "profile" ? "Profile Info" : activeTab}
                         </h1>
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-medium
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] max-sm:text-[8px] font-medium max-sm:hidden
                             ${theme === "dark" ? "bg-violet-500/15 text-violet-400" : "bg-violet-100 text-violet-600"}`}>
                             {allProfiles.profiles.find(p => p.id === allProfiles.activeProfileId)?.domainName || "Default"}
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                         <button
                             onClick={toggleTheme}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all
                                 ${theme === "dark"
                                     ? "hover:bg-white/10 text-gray-400 hover:text-white"
                                     : "hover:bg-gray-100 text-gray-500 hover:text-gray-900"
                                 }`}
                         >
-                            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+                            {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
                         </button>
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-xs font-medium">
+                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-medium">
                             {data.profile.name.split(" ").map(n => n[0]).join("")}
                         </div>
                     </div>
@@ -541,21 +697,49 @@ export default function AdminPanel() {
                                     <div className="flex items-center gap-3 mb-6">
                                         <Layers className="w-6 h-6 text-[var(--accent-secondary)]" />
                                         <div>
-                                            <h3 className="text-xl font-bold">Section Visibility</h3>
-                                            <p className="text-sm text-[var(--foreground-secondary)]">Enable or disable sections on your portfolio</p>
+                                            <h3 className="text-xl font-bold">Section Order & Visibility</h3>
+                                            <p className="text-sm text-[var(--foreground-secondary)]">Drag sections up/down to reorder. Toggle to show/hide.</p>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-3">
-                                        {(Object.keys(sectionLabels) as Array<keyof SectionVisibility>).map((section) => (
+                                    <div className="space-y-2">
+                                        {(data.sectionOrder || defaultSectionOrder).map((section, index) => (
                                             <div
                                                 key={section}
-                                                className="flex items-center justify-between p-4 rounded-xl glass-card"
+                                                className={`flex items-center gap-3 p-4 rounded-xl glass-card transition-all ${!data.sectionVisibility[section] ? 'opacity-50' : ''}`}
                                             >
-                                                <div>
-                                                    <p className="font-medium">{sectionLabels[section].label}</p>
-                                                    <p className="text-xs text-[var(--foreground-secondary)]">{sectionLabels[section].description}</p>
+                                                {/* Position number */}
+                                                <span className="w-6 h-6 rounded-lg bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] flex items-center justify-center text-xs font-bold">
+                                                    {index + 1}
+                                                </span>
+
+                                                {/* Up/Down arrows */}
+                                                <div className="flex flex-col gap-0.5">
+                                                    <button
+                                                        onClick={() => moveSectionUp(section)}
+                                                        disabled={index === 0}
+                                                        className={`p-1 rounded hover:bg-[var(--glass)] transition-all ${index === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:text-[var(--accent-primary)]'}`}
+                                                        title="Move up"
+                                                    >
+                                                        <ChevronUp size={14} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => moveSectionDown(section)}
+                                                        disabled={index === (data.sectionOrder || defaultSectionOrder).length - 1}
+                                                        className={`p-1 rounded hover:bg-[var(--glass)] transition-all ${index === (data.sectionOrder || defaultSectionOrder).length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:text-[var(--accent-primary)]'}`}
+                                                        title="Move down"
+                                                    >
+                                                        <ChevronDown size={14} />
+                                                    </button>
                                                 </div>
+
+                                                {/* Section info */}
+                                                <div className="flex-1">
+                                                    <p className="font-medium">{sectionLabels[section]?.label || section}</p>
+                                                    <p className="text-xs text-[var(--foreground-secondary)]">{sectionLabels[section]?.description || ''}</p>
+                                                </div>
+
+                                                {/* Toggle */}
                                                 <button
                                                     onClick={() => toggleSection(section)}
                                                     className={`p-2 rounded-xl transition-all ${data.sectionVisibility[section]
@@ -574,7 +758,7 @@ export default function AdminPanel() {
                                     </div>
 
                                     <p className="text-xs text-[var(--foreground-secondary)] mt-4 text-center">
-                                        Changes are saved automatically. Refresh portfolio to see updates.
+                                        ⬆️⬇️ Use arrows to reorder. Changes are saved automatically.
                                     </p>
                                 </div>
                             </motion.div>
@@ -1141,6 +1325,395 @@ export default function AdminPanel() {
                             </motion.div>
                         )}
 
+                        {/* Stats Tab */}
+                        {activeTab === "stats" && (
+                            <motion.div
+                                key="stats"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                className="space-y-4"
+                            >
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-xl font-bold">📊 Numbers That Speak ({data.customStats?.length || 0})</h3>
+                                    <button
+                                        onClick={() => {
+                                            addStat({
+                                                icon: "Code2",
+                                                value: 10,
+                                                suffix: "+",
+                                                label: "New Stat",
+                                                color: "from-purple-500 to-indigo-500"
+                                            });
+                                        }}
+                                        className="btn-primary text-sm !py-2 !px-4 flex items-center gap-2"
+                                    >
+                                        <Plus size={16} /> Add Stat
+                                    </button>
+                                </div>
+
+                                <div className="neo-glass rounded-2xl p-4 mb-4">
+                                    <p className="text-sm text-[var(--foreground-secondary)]">
+                                        💡 Customize the stats shown in the "Numbers That Speak" section of your portfolio.
+                                        You can add project counts, client numbers, years of experience, and more!
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-4">
+                                    {data.customStats?.map((stat) => (
+                                        <div key={stat.id} className="neo-glass rounded-2xl p-4">
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                    <div>
+                                                        <label className="block text-xs font-medium mb-1">Icon</label>
+                                                        <select
+                                                            value={stat.icon}
+                                                            onChange={(e) => updateStat(stat.id, { icon: e.target.value })}
+                                                            className="w-full px-2 py-1.5 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none text-sm"
+                                                        >
+                                                            <option value="Code2">📝 Code</option>
+                                                            <option value="Users">👥 Users</option>
+                                                            <option value="Briefcase">💼 Briefcase</option>
+                                                            <option value="Coffee">☕ Coffee</option>
+                                                            <option value="Trophy">🏆 Trophy</option>
+                                                            <option value="Rocket">🚀 Rocket</option>
+                                                            <option value="Star">⭐ Star</option>
+                                                            <option value="Heart">❤️ Heart</option>
+                                                            <option value="Globe">🌍 Globe</option>
+                                                            <option value="Zap">⚡ Zap</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-medium mb-1">Value</label>
+                                                        <input
+                                                            type="number"
+                                                            value={stat.value}
+                                                            onChange={(e) => updateStat(stat.id, { value: parseInt(e.target.value) || 0 })}
+                                                            className="w-full px-2 py-1.5 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none text-sm"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-medium mb-1">Suffix</label>
+                                                        <select
+                                                            value={stat.suffix}
+                                                            onChange={(e) => updateStat(stat.id, { suffix: e.target.value })}
+                                                            className="w-full px-2 py-1.5 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none text-sm"
+                                                        >
+                                                            <option value="+">+ (Plus)</option>
+                                                            <option value="%">% (Percent)</option>
+                                                            <option value="K">K (Thousand)</option>
+                                                            <option value="M">M (Million)</option>
+                                                            <option value="">None</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-medium mb-1">Label</label>
+                                                        <input
+                                                            type="text"
+                                                            value={stat.label}
+                                                            onChange={(e) => updateStat(stat.id, { label: e.target.value })}
+                                                            placeholder="Projects Completed"
+                                                            className="w-full px-2 py-1.5 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none text-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => deleteStat(stat.id)}
+                                                    className="p-2 ml-2 rounded-xl hover:bg-red-500/10 text-[var(--foreground-secondary)] hover:text-red-400 transition-all"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                            <div className="mt-2">
+                                                <label className="block text-xs font-medium mb-1">Gradient Color</label>
+                                                <select
+                                                    value={stat.color}
+                                                    onChange={(e) => updateStat(stat.id, { color: e.target.value })}
+                                                    className="w-full px-2 py-1.5 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none text-sm"
+                                                >
+                                                    <option value="from-purple-500 to-indigo-500">Purple → Indigo</option>
+                                                    <option value="from-indigo-500 to-cyan-500">Indigo → Cyan</option>
+                                                    <option value="from-cyan-500 to-emerald-500">Cyan → Emerald</option>
+                                                    <option value="from-emerald-500 to-yellow-500">Emerald → Yellow</option>
+                                                    <option value="from-yellow-500 to-orange-500">Yellow → Orange</option>
+                                                    <option value="from-orange-500 to-red-500">Orange → Red</option>
+                                                    <option value="from-pink-500 to-rose-500">Pink → Rose</option>
+                                                    <option value="from-blue-500 to-purple-500">Blue → Purple</option>
+                                                </select>
+                                            </div>
+                                            {/* Preview */}
+                                            <div className="mt-3 p-3 rounded-xl bg-[var(--background)]/30 border border-[var(--glass-border)]">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
+                                                        <span className="text-white text-lg">
+                                                            {stat.icon === "Code2" && "📝"}
+                                                            {stat.icon === "Users" && "👥"}
+                                                            {stat.icon === "Briefcase" && "💼"}
+                                                            {stat.icon === "Coffee" && "☕"}
+                                                            {stat.icon === "Trophy" && "🏆"}
+                                                            {stat.icon === "Rocket" && "🚀"}
+                                                            {stat.icon === "Star" && "⭐"}
+                                                            {stat.icon === "Heart" && "❤️"}
+                                                            {stat.icon === "Globe" && "🌍"}
+                                                            {stat.icon === "Zap" && "⚡"}
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xl font-bold text-gradient">{stat.value}{stat.suffix}</p>
+                                                        <p className="text-xs text-[var(--foreground-secondary)]">{stat.label}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {(!data.customStats || data.customStats.length === 0) && (
+                                        <div className="text-center py-8 text-[var(--foreground-secondary)]">
+                                            No stats yet. Click "Add Stat" to create one!
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* Custom Sections Tab */}
+                        {activeTab === "custom-sections" && (
+                            <motion.div
+                                key="custom-sections"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                className="space-y-4"
+                            >
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-xl font-bold">🧩 Custom Sections ({data.customSections?.length || 0})</h3>
+                                    <button
+                                        onClick={() => {
+                                            addCustomSection({
+                                                title: "New Section",
+                                                subtitle: "Add a description here",
+                                                layout: "cards",
+                                                columns: 3,
+                                                items: [],
+                                                isVisible: true
+                                            });
+                                        }}
+                                        className="btn-primary text-sm !py-2 !px-4 flex items-center gap-2"
+                                    >
+                                        <Plus size={16} /> Add Section
+                                    </button>
+                                </div>
+
+                                <div className="neo-glass rounded-2xl p-4 mb-4">
+                                    <p className="text-sm text-[var(--foreground-secondary)]">
+                                        💡 Create custom sections with text, cards, and images. They will appear in the Sections tab where you can reorder them with other sections.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {data.customSections?.map((section) => (
+                                        <div key={section.id} className="neo-glass rounded-2xl p-5">
+                                            {/* Section Header */}
+                                            <div className="flex items-start justify-between mb-4">
+                                                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="block text-xs font-medium mb-1">Section Title</label>
+                                                        <input
+                                                            type="text"
+                                                            value={section.title}
+                                                            onChange={(e) => updateCustomSection(section.id, { title: e.target.value })}
+                                                            className="w-full px-3 py-2 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-medium mb-1">Subtitle</label>
+                                                        <input
+                                                            type="text"
+                                                            value={section.subtitle || ""}
+                                                            onChange={(e) => updateCustomSection(section.id, { subtitle: e.target.value })}
+                                                            className="w-full px-3 py-2 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 ml-3">
+                                                    <button
+                                                        onClick={() => updateCustomSection(section.id, { isVisible: !section.isVisible })}
+                                                        className={`p-2 rounded-xl transition-all ${section.isVisible
+                                                            ? "text-green-400 hover:bg-green-500/10"
+                                                            : "text-[var(--foreground-secondary)] hover:bg-[var(--glass)]"
+                                                            }`}
+                                                    >
+                                                        {section.isVisible ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteCustomSection(section.id)}
+                                                        className="p-2 rounded-xl hover:bg-red-500/10 text-[var(--foreground-secondary)] hover:text-red-400 transition-all"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Layout Settings */}
+                                            <div className="grid grid-cols-2 gap-3 mb-4">
+                                                <div>
+                                                    <label className="block text-xs font-medium mb-1">Layout</label>
+                                                    <select
+                                                        value={section.layout}
+                                                        onChange={(e) => updateCustomSection(section.id, { layout: e.target.value as 'grid' | 'list' | 'cards' })}
+                                                        className="w-full px-3 py-2 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none text-sm"
+                                                    >
+                                                        <option value="cards">Cards Grid</option>
+                                                        <option value="grid">Simple Grid</option>
+                                                        <option value="list">List</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-medium mb-1">Columns</label>
+                                                    <select
+                                                        value={section.columns}
+                                                        onChange={(e) => updateCustomSection(section.id, { columns: parseInt(e.target.value) as 2 | 3 | 4 })}
+                                                        className="w-full px-3 py-2 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none text-sm"
+                                                    >
+                                                        <option value={2}>2 Columns</option>
+                                                        <option value={3}>3 Columns</option>
+                                                        <option value={4}>4 Columns</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            {/* Items */}
+                                            <div className="border-t border-[var(--glass-border)] pt-4 mt-4">
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <h4 className="font-medium text-sm">Items ({section.items.length})</h4>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => addCustomSectionItem(section.id, { type: 'card', title: 'New Card', description: 'Card description', icon: 'Star' })}
+                                                            className="text-xs px-3 py-1.5 rounded-lg bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/30 transition-colors"
+                                                        >
+                                                            + Card
+                                                        </button>
+                                                        <button
+                                                            onClick={() => addCustomSectionItem(section.id, { type: 'text', content: 'Your text content here...' })}
+                                                            className="text-xs px-3 py-1.5 rounded-lg bg-[var(--accent-secondary)]/20 text-[var(--accent-secondary)] hover:bg-[var(--accent-secondary)]/30 transition-colors"
+                                                        >
+                                                            + Text
+                                                        </button>
+                                                        <button
+                                                            onClick={() => addCustomSectionItem(section.id, { type: 'image', imageUrl: '', caption: '' })}
+                                                            className="text-xs px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors"
+                                                        >
+                                                            + Image
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-3">
+                                                    {section.items.map((item) => (
+                                                        <div key={item.id} className="p-3 rounded-xl bg-[var(--background)]/30 border border-[var(--glass-border)]">
+                                                            <div className="flex items-start justify-between mb-2">
+                                                                <span className={`text-xs px-2 py-0.5 rounded ${item.type === 'card' ? 'bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]' :
+                                                                        item.type === 'text' ? 'bg-[var(--accent-secondary)]/20 text-[var(--accent-secondary)]' :
+                                                                            'bg-purple-500/20 text-purple-400'
+                                                                    }`}>
+                                                                    {item.type.toUpperCase()}
+                                                                </span>
+                                                                <button
+                                                                    onClick={() => deleteCustomSectionItem(section.id, item.id)}
+                                                                    className="p-1 rounded hover:bg-red-500/10 text-[var(--foreground-secondary)] hover:text-red-400 transition-all"
+                                                                >
+                                                                    <Trash2 size={14} />
+                                                                </button>
+                                                            </div>
+
+                                                            {item.type === 'text' && (
+                                                                <textarea
+                                                                    value={item.content || ''}
+                                                                    onChange={(e) => updateCustomSectionItem(section.id, item.id, { content: e.target.value })}
+                                                                    className="w-full px-3 py-2 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none text-sm resize-none"
+                                                                    rows={3}
+                                                                    placeholder="Enter text content..."
+                                                                />
+                                                            )}
+
+                                                            {item.type === 'card' && (
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={item.title || ''}
+                                                                        onChange={(e) => updateCustomSectionItem(section.id, item.id, { title: e.target.value })}
+                                                                        className="px-2 py-1.5 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none text-sm"
+                                                                        placeholder="Title"
+                                                                    />
+                                                                    <select
+                                                                        value={item.icon || ''}
+                                                                        onChange={(e) => updateCustomSectionItem(section.id, item.id, { icon: e.target.value })}
+                                                                        className="px-2 py-1.5 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none text-sm"
+                                                                    >
+                                                                        <option value="Star">⭐ Star</option>
+                                                                        <option value="Code2">📝 Code</option>
+                                                                        <option value="Users">👥 Users</option>
+                                                                        <option value="Briefcase">💼 Briefcase</option>
+                                                                        <option value="Trophy">🏆 Trophy</option>
+                                                                        <option value="Rocket">🚀 Rocket</option>
+                                                                        <option value="Heart">❤️ Heart</option>
+                                                                        <option value="Globe">🌍 Globe</option>
+                                                                        <option value="Zap">⚡ Zap</option>
+                                                                    </select>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={item.description || ''}
+                                                                        onChange={(e) => updateCustomSectionItem(section.id, item.id, { description: e.target.value })}
+                                                                        className="col-span-2 px-2 py-1.5 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none text-sm"
+                                                                        placeholder="Description"
+                                                                    />
+                                                                    <input
+                                                                        type="text"
+                                                                        value={item.link || ''}
+                                                                        onChange={(e) => updateCustomSectionItem(section.id, item.id, { link: e.target.value })}
+                                                                        className="col-span-2 px-2 py-1.5 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none text-sm"
+                                                                        placeholder="Link URL (optional)"
+                                                                    />
+                                                                </div>
+                                                            )}
+
+                                                            {item.type === 'image' && (
+                                                                <div className="space-y-2">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={item.imageUrl || ''}
+                                                                        onChange={(e) => updateCustomSectionItem(section.id, item.id, { imageUrl: e.target.value })}
+                                                                        className="w-full px-2 py-1.5 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none text-sm"
+                                                                        placeholder="Image URL"
+                                                                    />
+                                                                    <input
+                                                                        type="text"
+                                                                        value={item.caption || ''}
+                                                                        onChange={(e) => updateCustomSectionItem(section.id, item.id, { caption: e.target.value })}
+                                                                        className="w-full px-2 py-1.5 rounded-lg bg-[var(--background)]/50 border border-[var(--glass-border)] focus:border-[var(--accent-primary)] focus:outline-none text-sm"
+                                                                        placeholder="Caption (optional)"
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                    {section.items.length === 0 && (
+                                                        <p className="text-center py-4 text-[var(--foreground-secondary)] text-sm">
+                                                            No items yet. Add cards, text, or images above.
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {(!data.customSections || data.customSections.length === 0) && (
+                                        <div className="text-center py-8 text-[var(--foreground-secondary)]">
+                                            No custom sections yet. Click &quot;Add Section&quot; to create one!
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
+
                         {/* Appearance Tab */}
                         {activeTab === "appearance" && (
                             <motion.div
@@ -1228,6 +1801,14 @@ export default function AdminPanel() {
                                                 <option value="space-grotesk">Space Grotesk (Techy)</option>
                                                 <option value="outfit">Outfit (Sleek)</option>
                                                 <option value="playfair">Playfair Display (Elegant)</option>
+                                                <option value="lato">Lato (Warm, Professional)</option>
+                                                <option value="montserrat">Montserrat (Bold, Modern)</option>
+                                                <option value="nunito">Nunito (Rounded, Friendly)</option>
+                                                <option value="opensans">Open Sans (Neutral)</option>
+                                                <option value="raleway">Raleway (Elegant, Light)</option>
+                                                <option value="sourcesans">Source Sans Pro (Adobe)</option>
+                                                <option value="ubuntu">Ubuntu (Linux, Unique)</option>
+                                                <option value="worksans">Work Sans (Minimal)</option>
                                             </select>
                                         </div>
                                         <div>
@@ -1243,6 +1824,14 @@ export default function AdminPanel() {
                                                 <option value="space-grotesk">Space Grotesk (Techy)</option>
                                                 <option value="outfit">Outfit (Sleek)</option>
                                                 <option value="playfair">Playfair Display (Elegant)</option>
+                                                <option value="lato">Lato (Warm, Professional)</option>
+                                                <option value="montserrat">Montserrat (Bold, Modern)</option>
+                                                <option value="nunito">Nunito (Rounded, Friendly)</option>
+                                                <option value="opensans">Open Sans (Neutral)</option>
+                                                <option value="raleway">Raleway (Elegant, Light)</option>
+                                                <option value="sourcesans">Source Sans Pro (Adobe)</option>
+                                                <option value="ubuntu">Ubuntu (Linux, Unique)</option>
+                                                <option value="worksans">Work Sans (Minimal)</option>
                                             </select>
                                         </div>
                                     </div>

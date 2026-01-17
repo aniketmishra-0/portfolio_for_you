@@ -36,6 +36,14 @@ export default function ThemeApplier() {
             'space-grotesk': 'var(--font-space-grotesk), sans-serif',
             'outfit': 'var(--font-outfit), sans-serif',
             'playfair': 'var(--font-playfair), serif',
+            'lato': 'var(--font-lato), sans-serif',
+            'montserrat': 'var(--font-montserrat), sans-serif',
+            'nunito': 'var(--font-nunito), sans-serif',
+            'opensans': 'var(--font-opensans), sans-serif',
+            'raleway': 'var(--font-raleway), sans-serif',
+            'sourcesans': 'var(--font-sourcesans), sans-serif',
+            'ubuntu': 'var(--font-ubuntu), sans-serif',
+            'worksans': 'var(--font-worksans), sans-serif',
         };
 
         if (theme.fontFamily && fontMap[theme.fontFamily]) {

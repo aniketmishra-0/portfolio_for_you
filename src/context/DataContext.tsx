@@ -144,6 +144,42 @@ export interface Certification {
     url: string;
 }
 
+export interface StatItem {
+    id: number;
+    icon: string; // Icon name like "Code2", "Users", "Coffee", etc.
+    value: number;
+    suffix: string; // "+" or "%"
+    label: string;
+    color: string; // Gradient color like "from-purple-500 to-indigo-500"
+}
+
+// Custom Section Item - can be text block, card, or image
+export interface CustomSectionItem {
+    id: number;
+    type: 'text' | 'card' | 'image';
+    // For text type
+    content?: string;
+    // For card type
+    title?: string;
+    description?: string;
+    icon?: string;
+    link?: string;
+    // For image type
+    imageUrl?: string;
+    caption?: string;
+}
+
+// Custom Section - user-defined section
+export interface CustomSection {
+    id: string;
+    title: string;
+    subtitle?: string;
+    layout: 'grid' | 'list' | 'cards'; // How items are displayed
+    columns: 2 | 3 | 4; // Grid columns
+    items: CustomSectionItem[];
+    isVisible: boolean;
+}
+
 export interface SectionVisibility {
     about: boolean;
     skills: boolean;
@@ -156,6 +192,22 @@ export interface SectionVisibility {
     stats: boolean;
     githubStats: boolean;
 }
+
+// Section order - IDs match keys in SectionVisibility
+export type SectionId = keyof SectionVisibility;
+
+export const defaultSectionOrder: SectionId[] = [
+    "about",
+    "skills",
+    "projects",
+    "experience",
+    "education",
+    "stats",
+    "githubStats",
+    "testimonials",
+    "blog",
+    "contact"
+];
 
 // Single Domain/Role Profile
 export interface DomainProfile {
@@ -170,7 +222,10 @@ export interface DomainProfile {
     testimonials: Testimonial[];
     blogPosts: BlogPost[];
     certifications: Certification[];
+    customStats: StatItem[];
+    customSections: CustomSection[];
     sectionVisibility: SectionVisibility;
+    sectionOrder: SectionId[];
     seo: SEOSettings;
     customLinks: CustomLink[];
     theme: ThemeSettings;
@@ -186,7 +241,10 @@ export interface PortfolioData {
     testimonials: Testimonial[];
     blogPosts: BlogPost[];
     certifications: Certification[];
+    customStats: StatItem[];
+    customSections: CustomSection[];
     sectionVisibility: SectionVisibility;
+    sectionOrder: SectionId[];
     seo: SEOSettings;
     customLinks: CustomLink[];
     theme: ThemeSettings;
@@ -328,6 +386,15 @@ I love turning complex problems into simple, beautiful, and intuitive solutions.
             url: "https://cloud.google.com/certification",
         },
     ],
+    customStats: [
+        { id: 1, icon: "Code2", value: 50, suffix: "+", label: "Projects Completed", color: "from-purple-500 to-indigo-500" },
+        { id: 2, icon: "Users", value: 30, suffix: "+", label: "Happy Clients", color: "from-indigo-500 to-cyan-500" },
+        { id: 3, icon: "Briefcase", value: 5, suffix: "+", label: "Years Experience", color: "from-cyan-500 to-emerald-500" },
+        { id: 4, icon: "Coffee", value: 1000, suffix: "+", label: "Cups of Coffee", color: "from-emerald-500 to-yellow-500" },
+        { id: 5, icon: "Trophy", value: 15, suffix: "+", label: "Awards Won", color: "from-yellow-500 to-orange-500" },
+        { id: 6, icon: "Rocket", value: 99, suffix: "%", label: "Client Satisfaction", color: "from-orange-500 to-red-500" },
+    ],
+    customSections: [],
     sectionVisibility: {
         about: true,
         skills: true,
@@ -340,6 +407,7 @@ I love turning complex problems into simple, beautiful, and intuitive solutions.
         stats: true,
         githubStats: true,
     },
+    sectionOrder: defaultSectionOrder,
     seo: {
         metaTitle: "Aniket Mishra - Full Stack Developer",
         metaDescription: "Portfolio of Aniket Mishra, a Full Stack Developer specializing in web and mobile applications.",
@@ -413,10 +481,22 @@ interface DataContextType {
     addCertification: (cert: Omit<Certification, "id">) => void;
     updateCertification: (id: number, cert: Partial<Omit<Certification, "id">>) => void;
     deleteCertification: (id: number) => void;
+    addStat: (stat: Omit<StatItem, "id">) => void;
+    updateStat: (id: number, stat: Partial<StatItem>) => void;
+    deleteStat: (id: number) => void;
+    addCustomSection: (section: Omit<CustomSection, "id">) => void;
+    updateCustomSection: (id: string, updates: Partial<CustomSection>) => void;
+    deleteCustomSection: (id: string) => void;
+    addCustomSectionItem: (sectionId: string, item: Omit<CustomSectionItem, "id">) => void;
+    updateCustomSectionItem: (sectionId: string, itemId: number, updates: Partial<CustomSectionItem>) => void;
+    deleteCustomSectionItem: (sectionId: string, itemId: number) => void;
     updateSEO: (seo: SEOSettings) => void;
     updateTheme: (theme: Partial<ThemeSettings>) => void;
     toggleSection: (section: keyof SectionVisibility) => void;
     updateSectionVisibility: (visibility: SectionVisibility) => void;
+    updateSectionOrder: (order: SectionId[]) => void;
+    moveSectionUp: (sectionId: SectionId) => void;
+    moveSectionDown: (sectionId: SectionId) => void;
     exportData: () => string;
     importData: (json: string) => boolean;
     resetToDefault: () => void;
@@ -456,7 +536,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
                         testimonials: parsed.testimonials || [],
                         blogPosts: parsed.blogPosts || [],
                         certifications: parsed.certifications || defaultProfileData.certifications,
+                        customStats: parsed.customStats || defaultProfileData.customStats,
+                        customSections: parsed.customSections || [],
                         sectionVisibility: parsed.sectionVisibility || defaultProfileData.sectionVisibility,
+                        sectionOrder: parsed.sectionOrder || defaultProfileData.sectionOrder,
                         seo: parsed.seo || defaultProfileData.seo,
                         customLinks: parsed.customLinks || [],
                         theme: parsed.theme || defaultProfileData.theme,
@@ -499,7 +582,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
             testimonials: active.testimonials,
             blogPosts: active.blogPosts,
             certifications: active.certifications || defaultProfileData.certifications,
+            customStats: active.customStats || defaultProfileData.customStats,
+            customSections: active.customSections || [],
             sectionVisibility: active.sectionVisibility,
+            sectionOrder: active.sectionOrder || defaultProfileData.sectionOrder,
             seo: active.seo || defaultProfileData.seo,
             customLinks: active.customLinks || [],
             theme: active.theme || defaultProfileData.theme,
@@ -752,6 +838,86 @@ export function DataProvider({ children }: { children: ReactNode }) {
         updateActiveProfile(p => ({ ...p, certifications: (p.certifications || []).filter(c => c.id !== id) }));
     };
 
+    // Stats CRUD
+    const addStat = (stat: Omit<StatItem, "id">) => {
+        updateActiveProfile(p => ({
+            ...p,
+            customStats: [...(p.customStats || []), { ...stat, id: Date.now() }]
+        }));
+    };
+
+    const updateStat = (id: number, updates: Partial<StatItem>) => {
+        updateActiveProfile(p => ({
+            ...p,
+            customStats: (p.customStats || []).map(s => s.id === id ? { ...s, ...updates } : s)
+        }));
+    };
+
+    const deleteStat = (id: number) => {
+        updateActiveProfile(p => ({ ...p, customStats: (p.customStats || []).filter(s => s.id !== id) }));
+    };
+
+    // Custom Sections CRUD
+    const addCustomSection = (section: Omit<CustomSection, "id">) => {
+        const newSection: CustomSection = {
+            ...section,
+            id: `custom_${Date.now()}`,
+        };
+        updateActiveProfile(p => ({
+            ...p,
+            customSections: [...(p.customSections || []), newSection],
+            sectionOrder: [...(p.sectionOrder || defaultSectionOrder), newSection.id as SectionId],
+        }));
+    };
+
+    const updateCustomSection = (id: string, updates: Partial<CustomSection>) => {
+        updateActiveProfile(p => ({
+            ...p,
+            customSections: (p.customSections || []).map(s => s.id === id ? { ...s, ...updates } : s),
+        }));
+    };
+
+    const deleteCustomSection = (id: string) => {
+        updateActiveProfile(p => ({
+            ...p,
+            customSections: (p.customSections || []).filter(s => s.id !== id),
+            sectionOrder: (p.sectionOrder || defaultSectionOrder).filter(s => s !== id),
+        }));
+    };
+
+    const addCustomSectionItem = (sectionId: string, item: Omit<CustomSectionItem, "id">) => {
+        updateActiveProfile(p => ({
+            ...p,
+            customSections: (p.customSections || []).map(s =>
+                s.id === sectionId
+                    ? { ...s, items: [...s.items, { ...item, id: Date.now() }] }
+                    : s
+            ),
+        }));
+    };
+
+    const updateCustomSectionItem = (sectionId: string, itemId: number, updates: Partial<CustomSectionItem>) => {
+        updateActiveProfile(p => ({
+            ...p,
+            customSections: (p.customSections || []).map(s =>
+                s.id === sectionId
+                    ? { ...s, items: s.items.map(i => i.id === itemId ? { ...i, ...updates } : i) }
+                    : s
+            ),
+        }));
+    };
+
+    const deleteCustomSectionItem = (sectionId: string, itemId: number) => {
+        updateActiveProfile(p => ({
+            ...p,
+            customSections: (p.customSections || []).map(s =>
+                s.id === sectionId
+                    ? { ...s, items: s.items.filter(i => i.id !== itemId) }
+                    : s
+            ),
+        }));
+    };
+
     const toggleSection = (section: keyof SectionVisibility) => {
         updateActiveProfile(p => ({
             ...p,
@@ -764,6 +930,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const updateSectionVisibility = (visibility: SectionVisibility) => {
         updateActiveProfile(p => ({ ...p, sectionVisibility: visibility }));
+    };
+
+    const updateSectionOrder = (order: SectionId[]) => {
+        updateActiveProfile(p => ({ ...p, sectionOrder: order }));
+    };
+
+    const moveSectionUp = (sectionId: SectionId) => {
+        updateActiveProfile(p => {
+            const order = [...(p.sectionOrder || defaultSectionOrder)];
+            const index = order.indexOf(sectionId);
+            if (index > 0) {
+                [order[index - 1], order[index]] = [order[index], order[index - 1]];
+            }
+            return { ...p, sectionOrder: order };
+        });
+    };
+
+    const moveSectionDown = (sectionId: SectionId) => {
+        updateActiveProfile(p => {
+            const order = [...(p.sectionOrder || defaultSectionOrder)];
+            const index = order.indexOf(sectionId);
+            if (index < order.length - 1) {
+                [order[index], order[index + 1]] = [order[index + 1], order[index]];
+            }
+            return { ...p, sectionOrder: order };
+        });
     };
 
     const updateSEO = (seo: SEOSettings) => {
@@ -797,7 +989,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     testimonials: parsed.testimonials || [],
                     blogPosts: parsed.blogPosts || [],
                     certifications: parsed.certifications || defaultProfileData.certifications,
+                    customStats: parsed.customStats || defaultProfileData.customStats,
+                    customSections: parsed.customSections || [],
                     sectionVisibility: parsed.sectionVisibility || defaultProfileData.sectionVisibility,
+                    sectionOrder: parsed.sectionOrder || defaultProfileData.sectionOrder,
                     seo: parsed.seo || defaultProfileData.seo,
                     customLinks: parsed.customLinks || [],
                     theme: parsed.theme || defaultProfileData.theme,
@@ -856,10 +1051,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
             addCertification,
             updateCertification,
             deleteCertification,
+            addStat,
+            updateStat,
+            deleteStat,
+            addCustomSection,
+            updateCustomSection,
+            deleteCustomSection,
+            addCustomSectionItem,
+            updateCustomSectionItem,
+            deleteCustomSectionItem,
             updateSEO,
             updateTheme,
             toggleSection,
             updateSectionVisibility,
+            updateSectionOrder,
+            moveSectionUp,
+            moveSectionDown,
             exportData,
             importData,
             resetToDefault,

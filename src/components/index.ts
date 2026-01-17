@@ -12,3 +12,4 @@ export { default as GitHubStats } from "./GitHubStats";
 export { default as ParticleBackground } from "./ParticleBackground";
 export { default as Testimonials } from "./Testimonials";
 export { default as StatsSection } from "./StatsSection";
+export { default as CustomSection } from "./CustomSection";

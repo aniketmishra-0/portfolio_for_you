@@ -41,7 +41,7 @@ export const layoutTemplates: Record<LayoutTemplate, {
 };
 
 // Font Options
-export type FontFamily = 'inter' | 'poppins' | 'roboto' | 'space-grotesk' | 'outfit' | 'playfair';
+export type FontFamily = 'inter' | 'poppins' | 'roboto' | 'space-grotesk' | 'outfit' | 'playfair' | 'lato' | 'montserrat' | 'nunito' | 'opensans' | 'raleway' | 'sourcesans' | 'ubuntu' | 'worksans';
 
 export const fontOptions: Record<FontFamily, {
     name: string;
@@ -84,6 +84,54 @@ export const fontOptions: Record<FontFamily, {
         family: "'Playfair Display', serif",
         weights: "400;500;600;700;800",
         category: "Elegant, Serif",
+    },
+    'lato': {
+        name: "Lato",
+        family: "'Lato', sans-serif",
+        weights: "300;400;700;900",
+        category: "Warm, Professional",
+    },
+    'montserrat': {
+        name: "Montserrat",
+        family: "'Montserrat', sans-serif",
+        weights: "300;400;500;600;700;800",
+        category: "Bold, Modern",
+    },
+    'nunito': {
+        name: "Nunito",
+        family: "'Nunito', sans-serif",
+        weights: "300;400;600;700;800",
+        category: "Rounded, Friendly",
+    },
+    'opensans': {
+        name: "Open Sans",
+        family: "'Open Sans', sans-serif",
+        weights: "300;400;500;600;700;800",
+        category: "Neutral, Readable",
+    },
+    'raleway': {
+        name: "Raleway",
+        family: "'Raleway', sans-serif",
+        weights: "300;400;500;600;700;800",
+        category: "Elegant, Light",
+    },
+    'sourcesans': {
+        name: "Source Sans Pro",
+        family: "'Source Sans Pro', sans-serif",
+        weights: "300;400;600;700;900",
+        category: "Adobe, Clean",
+    },
+    'ubuntu': {
+        name: "Ubuntu",
+        family: "'Ubuntu', sans-serif",
+        weights: "300;400;500;700",
+        category: "Linux, Unique",
+    },
+    'worksans': {
+        name: "Work Sans",
+        family: "'Work Sans', sans-serif",
+        weights: "300;400;500;600;700;800",
+        category: "Grotesk, Minimal",
     },
 };
 

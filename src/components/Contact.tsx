@@ -10,6 +10,7 @@ type FormStatus = "idle" | "loading" | "success" | "error";
 export default function Contact() {
     const { data } = usePortfolioData();
     const profile = data.profile;
+    const social = profile?.social || { github: "", linkedin: "", twitter: "", instagram: "" };
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, amount: 0.2 });
     const [formStatus, setFormStatus] = useState<FormStatus>("idle");
@@ -129,27 +130,6 @@ export default function Contact() {
                                             <p className="text-xs text-[var(--foreground-secondary)]">{info.label}</p>
                                             <p className="font-medium group-hover:text-[var(--accent-secondary)] transition-colors">{info.value}</p>
                                         </div>
-                                    </motion.a>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Social Links */}
-                        <div className="neo-glass rounded-2xl p-6">
-                            <h4 className="font-bold mb-4">Follow Me</h4>
-                            <div className="flex gap-3">
-                                {socialLinks.filter(s => s.url).map((social) => (
-                                    <motion.a
-                                        key={social.label}
-                                        href={social.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        whileHover={{ scale: 1.1, y: -3 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        className="w-12 h-12 rounded-xl glass-card flex items-center justify-center hover:border-[var(--accent-secondary)] transition-all group"
-                                        title={social.label}
-                                    >
-                                        <social.icon size={20} className="text-gray-600 dark:text-gray-300 group-hover:text-[var(--accent-secondary)] transition-colors" />
                                     </motion.a>
                                 ))}
                             </div>
