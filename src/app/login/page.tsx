@@ -1,17 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Lock, Loader2, Shield, Sparkles, Github } from "lucide-react";
-import { signIn } from "next-auth/react";
+import { Lock, Loader2, Shield, Github } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAppwriteAuth } from "@/context/AppwriteAuthContext";
 
 export default function AdminLogin() {
-    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const { login, isAuthenticated, isLoading } = useAppwriteAuth();
+    const [isConnecting, setIsConnecting] = useState(false);
+    const [error, setError] = useState("");
+
+    // Check for auth errors from callback
+    useEffect(() => {
+        const authError = searchParams.get("error");
+        if (authError) {
+            setError("Authentication failed. Your email may not be authorized.");
+        }
+    }, [searchParams]);
+
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (!isLoading && isAuthenticated) {
+            router.push("/admin");
+        }
+    }, [isLoading, isAuthenticated, router]);
 
     const handleGitHubLogin = async () => {
-        setIsLoading(true);
-        await signIn("github", { callbackUrl: "/admin" });
+        setIsConnecting(true);
+        setError("");
+        try {
+            await login("github");
+        } catch {
+            setError("Failed to connect to GitHub");
+            setIsConnecting(false);
+        }
     };
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+                <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
@@ -99,17 +133,28 @@ export default function AdminLogin() {
                         </motion.p>
                     </div>
 
+                    {/* Error message */}
+                    {error && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs text-center"
+                        >
+                            {error}
+                        </motion.div>
+                    )}
+
                     {/* GitHub Login Button */}
                     <motion.button
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5 }}
                         onClick={handleGitHubLogin}
-                        disabled={isLoading}
+                        disabled={isConnecting}
                         className="group w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-[#24292e] hover:bg-[#2f363d] text-white font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] border border-white/10"
                         whileHover={{ boxShadow: "0 0 30px rgba(139, 92, 246, 0.3)" }}
                     >
-                        {isLoading ? (
+                        {isConnecting ? (
                             <>
                                 <Loader2 className="w-5 h-5 animate-spin" />
                                 <span>Connecting...</span>
@@ -125,7 +170,7 @@ export default function AdminLogin() {
                     {/* Divider */}
                     <div className="flex items-center gap-3 my-5">
                         <div className="flex-1 h-px bg-white/10" />
-                        <span className="text-white/30 text-xs">Secure OAuth Login</span>
+                        <span className="text-white/30 text-xs">Powered by Appwrite</span>
                         <div className="flex-1 h-px bg-white/10" />
                     </div>
 

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Outfit, Poppins, Roboto, Space_Grotesk, Playfair_Display, Lato, Montserrat, Nunito, Open_Sans, Raleway, Source_Sans_3, Ubuntu, Work_Sans } from "next/font/google";
 import "./globals.css";
 import { DataProvider } from "@/context/DataContext";
-import { AuthProvider } from "@/components/AuthProvider";
+import { AppwriteAuthProvider } from "@/context/AppwriteAuthContext";
 import ParticleBackground from "@/components/ParticleBackground";
 
 const inter = Inter({
@@ -111,12 +111,12 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${outfit.variable} ${poppins.variable} ${roboto.variable} ${spaceGrotesk.variable} ${playfair.variable} ${lato.variable} ${montserrat.variable} ${nunito.variable} ${openSans.variable} ${raleway.variable} ${sourceSans.variable} ${ubuntu.variable} ${workSans.variable} antialiased bg-[var(--background)] text-[var(--foreground)] noise-overlay`}
       >
-        <AuthProvider>
+        <AppwriteAuthProvider>
           <DataProvider>
             <ParticleBackground />
             {children}
           </DataProvider>
-        </AuthProvider>
+        </AppwriteAuthProvider>
       </body>
     </html>
   );

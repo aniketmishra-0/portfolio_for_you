@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useAppwriteAuth } from "@/context/AppwriteAuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     LayoutDashboard,
@@ -84,7 +84,7 @@ const sectionLabels: Record<keyof SectionVisibility, { label: string; descriptio
 
 export default function AdminPanel() {
     const router = useRouter();
-    const { data: session, status } = useSession();
+    const { user, isLoading, isAuthenticated, logout } = useAppwriteAuth();
     const {
         data,
         allProfiles,
@@ -142,9 +142,9 @@ export default function AdminPanel() {
     const [editingItem, setEditingItem] = useState<Project | Experience | Testimonial | Education | null>(null);
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
-    // Check NextAuth session
+    // Check Appwrite auth session
     useEffect(() => {
-        if (status === "unauthenticated") {
+        if (!isLoading && !isAuthenticated) {
             router.push("/login");
         }
 
@@ -153,18 +153,19 @@ export default function AdminPanel() {
             setTheme(savedTheme);
             document.documentElement.setAttribute("data-theme", savedTheme);
         }
-    }, [status, router]);
+    }, [isLoading, isAuthenticated, router]);
 
     useEffect(() => {
         setEditingProfile(data.profile);
     }, [data.profile, allProfiles.activeProfileId]);
 
-    const handleLogout = () => {
-        signOut({ callbackUrl: "/login" });
+    const handleLogout = async () => {
+        await logout();
+        router.push("/login");
     };
 
     // Show loading while checking auth
-    if (status === "loading") {
+    if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
                 <Loader2 className="w-8 h-8 animate-spin text-[var(--accent-primary)]" />
@@ -173,7 +174,7 @@ export default function AdminPanel() {
     }
 
     // Don't render if not authenticated
-    if (!session) {
+    if (!isAuthenticated) {
         return null;
     }
 
