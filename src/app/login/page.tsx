@@ -2,35 +2,15 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, Loader2, Shield, Sparkles, Key } from "lucide-react";
-import { useRouter } from "next/navigation";
-
-// Simple client-side auth for static export
-const ADMIN_PASSWORD = "admin123"; // Change this to your secure password
+import { Lock, Loader2, Shield, Sparkles, Github } from "lucide-react";
+import { signIn } from "next-auth/react";
 
 export default function AdminLogin() {
-    const router = useRouter();
-    const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState("");
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleGitHubLogin = async () => {
         setIsLoading(true);
-        setError("");
-
-        // Simulate a slight delay for UX
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        if (password === ADMIN_PASSWORD) {
-            // Store auth in localStorage
-            localStorage.setItem("admin_authenticated", "true");
-            localStorage.setItem("admin_auth_time", Date.now().toString());
-            router.push("/admin");
-        } else {
-            setError("Invalid password. Please try again.");
-        }
-        setIsLoading(false);
+        await signIn("github", { callbackUrl: "/admin" });
     };
 
     return (
@@ -115,70 +95,46 @@ export default function AdminLogin() {
                             transition={{ delay: 0.4 }}
                             className="text-white/50 text-xs"
                         >
-                            Enter your admin password
+                            Sign in with GitHub to continue
                         </motion.p>
                     </div>
 
-                    {/* Error message */}
-                    {error && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs text-center"
-                        >
-                            {error}
-                        </motion.div>
-                    )}
+                    {/* GitHub Login Button */}
+                    <motion.button
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 }}
+                        onClick={handleGitHubLogin}
+                        disabled={isLoading}
+                        className="group w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-[#24292e] hover:bg-[#2f363d] text-white font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] border border-white/10"
+                        whileHover={{ boxShadow: "0 0 30px rgba(139, 92, 246, 0.3)" }}
+                    >
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <span>Connecting...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Github className="w-5 h-5" />
+                                <span>Continue with GitHub</span>
+                            </>
+                        )}
+                    </motion.button>
 
-                    {/* Login Form */}
-                    <form onSubmit={handleLogin} className="space-y-4">
-                        <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.5 }}
-                        >
-                            <div className="relative">
-                                <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="Enter password"
-                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 transition-all text-sm"
-                                    required
-                                />
-                            </div>
-                        </motion.div>
-
-                        <motion.button
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.6 }}
-                            type="submit"
-                            disabled={isLoading || !password}
-                            className="group w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-medium text-sm hover:from-violet-500 hover:to-fuchsia-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
-                            whileHover={{ boxShadow: "0 0 30px rgba(139, 92, 246, 0.3)" }}
-                        >
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span>Authenticating...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles className="w-4 h-4" />
-                                    <span>Access Admin Panel</span>
-                                </>
-                            )}
-                        </motion.button>
-                    </form>
+                    {/* Divider */}
+                    <div className="flex items-center gap-3 my-5">
+                        <div className="flex-1 h-px bg-white/10" />
+                        <span className="text-white/30 text-xs">Secure OAuth Login</span>
+                        <div className="flex-1 h-px bg-white/10" />
+                    </div>
 
                     {/* Security badge */}
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.7 }}
-                        className="mt-5 p-3 rounded-xl bg-gradient-to-r from-emerald-500/5 to-cyan-500/5 border border-emerald-500/10"
+                        transition={{ delay: 0.6 }}
+                        className="p-3 rounded-xl bg-gradient-to-r from-emerald-500/5 to-cyan-500/5 border border-emerald-500/10"
                     >
                         <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
@@ -186,7 +142,7 @@ export default function AdminLogin() {
                             </div>
                             <div>
                                 <p className="text-[10px] font-medium text-emerald-400">Secure Access</p>
-                                <p className="text-[9px] text-white/40">Password protected admin area</p>
+                                <p className="text-[9px] text-white/40">Only authorized accounts can access admin</p>
                             </div>
                         </div>
                     </motion.div>
@@ -195,7 +151,7 @@ export default function AdminLogin() {
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: 0.8 }}
+                        transition={{ delay: 0.7 }}
                         className="mt-4 text-center"
                     >
                         <a

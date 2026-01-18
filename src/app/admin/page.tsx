@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession, signOut } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     LayoutDashboard,
@@ -83,7 +84,7 @@ const sectionLabels: Record<keyof SectionVisibility, { label: string; descriptio
 
 export default function AdminPanel() {
     const router = useRouter();
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+    const { data: session, status } = useSession();
     const {
         data,
         allProfiles,
@@ -141,26 +142,9 @@ export default function AdminPanel() {
     const [editingItem, setEditingItem] = useState<Project | Experience | Testimonial | Education | null>(null);
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
-    // Check localStorage auth
+    // Check NextAuth session
     useEffect(() => {
-        const authStatus = localStorage.getItem("admin_authenticated");
-        const authTime = localStorage.getItem("admin_auth_time");
-
-        // Check if auth is valid (24 hour expiry)
-        if (authStatus === "true" && authTime) {
-            const authAge = Date.now() - parseInt(authTime);
-            const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-            if (authAge < maxAge) {
-                setIsAuthenticated(true);
-            } else {
-                // Session expired
-                localStorage.removeItem("admin_authenticated");
-                localStorage.removeItem("admin_auth_time");
-                setIsAuthenticated(false);
-                router.push("/login");
-            }
-        } else {
-            setIsAuthenticated(false);
+        if (status === "unauthenticated") {
             router.push("/login");
         }
 
@@ -169,20 +153,18 @@ export default function AdminPanel() {
             setTheme(savedTheme);
             document.documentElement.setAttribute("data-theme", savedTheme);
         }
-    }, [router]);
+    }, [status, router]);
 
     useEffect(() => {
         setEditingProfile(data.profile);
     }, [data.profile, allProfiles.activeProfileId]);
 
     const handleLogout = () => {
-        localStorage.removeItem("admin_authenticated");
-        localStorage.removeItem("admin_auth_time");
-        router.push("/login");
+        signOut({ callbackUrl: "/login" });
     };
 
     // Show loading while checking auth
-    if (isAuthenticated === null) {
+    if (status === "loading") {
         return (
             <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
                 <Loader2 className="w-8 h-8 animate-spin text-[var(--accent-primary)]" />
@@ -191,7 +173,7 @@ export default function AdminPanel() {
     }
 
     // Don't render if not authenticated
-    if (!isAuthenticated) {
+    if (!session) {
         return null;
     }
 
